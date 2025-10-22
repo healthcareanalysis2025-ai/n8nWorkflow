@@ -1,0 +1,2557 @@
+{
+  "name": "RailwayWorkingFlow",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "function formatDateYYYYMMDD(date) {\n  const year = date.getFullYear();\n  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based\n  const day = String(date.getDate()).padStart(2, '0');\n  return `${year}-${month}-${day}`;\n}\n\nconst serverNow = new Date();\n\nconst userTZ =  $input.first().json.timezone; // e.g., \"Asia/Kolkata\"\n\nconst userTime = new Date(serverNow.toLocaleString(\"en-US\", { timeZone: userTZ }));\n\nconst hour = userTime.getHours();\n\nconst formattedToday = formatDateYYYYMMDD(userTime);\n\n\n// Previous date in user's timezone\nuserTime.setDate(userTime.getDate() - 1);\nconst formattedYesterday = formatDateYYYYMMDD(userTime);\n\nreturn [{ json: { hour: hour, currentDate:formattedToday, prevDate: formattedYesterday } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        896
+      ],
+      "id": "cb9521b8-9421-47ad-a757-9a49e0e985bf",
+      "name": "getHour"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02a92bfd-de5d-436f-993e-d7dd08587294",
+              "name": "timezone",
+              "value": "={{ $json.body.zone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        896
+      ],
+      "id": "621d9023-0d6d-46bc-9c3b-a7781e90d66b",
+      "name": "getTimezonefromFE"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "questions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_date",
+              "keyValue": "={{ $json.currentDate || new Date().toISOString().slice(0,10) }}\n"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        352,
+        688
+      ],
+      "id": "9e086057-37aa-48b3-9536-6b19e26f732e",
+      "name": "getQuestions1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "questions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_date",
+              "keyValue": "={{ $json.prevDate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        480,
+        1120
+      ],
+      "id": "4fd427f1-5ec5-491f-a2a9-2405c30222cf",
+      "name": "getQ&A",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3034c1c8-98dc-4861-998c-56214fc4ef29",
+              "leftValue": "={{ $json.hour }}",
+              "rightValue": 9,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "49e9a423-d90a-4862-b221-1dcd59194da2",
+              "leftValue": "={{ $json.hour }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        896
+      ],
+      "id": "2ad65a80-ac74-41c5-952e-d679c27b390a",
+      "name": "timeb/w9&20",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        656,
+        832
+      ],
+      "id": "9e5c2b3d-f9de-4545-a43e-dcf189abf550",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1248,
+        1616
+      ],
+      "id": "c73d22b6-fa12-404e-a575-959984960fef",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "unsubscribe",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -704,
+        1568
+      ],
+      "id": "ef079c17-1f8e-4825-8800-9cabb5708eaf",
+      "name": "Subscribe",
+      "webhookId": "141c85ec-edd6-4299-92e0-f0566e6092b3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78a9cfc2-45cf-4085-aac2-35a6325fe9f8",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "31f943a7-83f7-4980-b1ef-1ce3e90fd52e",
+              "name": "zone",
+              "value": "={{ $json.body.zone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        1568
+      ],
+      "id": "d72302b5-cf1b-4067-95c5-bf7fb159686f",
+      "name": "Inputs"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "subscribed_user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        1568
+      ],
+      "id": "44c9b609-f27c-4b04-a271-6b5a3769b22d",
+      "name": "CheckEmail",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8443564d-f362-46ac-bac1-fe45b2bb16f5",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "22243202-fb71-48bd-9d21-8a9ee7da0644",
+              "leftValue": "={{ $items().length }}",
+              "rightValue": "1",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        1568
+      ],
+      "id": "5c145801-b589-4ec3-bcb7-54c5cb24aae1",
+      "name": "EmailExists",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        288,
+        1408
+      ],
+      "id": "32b74c2b-ae4c-47ea-8501-a0b33897114a",
+      "name": "inputs"
+    },
+    {
+      "parameters": {
+        "tableId": "subscribed_user_tbl",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $json.email }}"
+            },
+            {
+              "fieldId": "subscribed",
+              "fieldValue": "true"
+            },
+            {
+              "fieldId": "timeZone",
+              "fieldValue": "={{ $json.zone }}"
+            },
+            {
+              "fieldId": "sendTime",
+              "fieldValue": "21:00"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        480,
+        1408
+      ],
+      "id": "6e40583a-ee28-4b1e-840b-c2026928291c",
+      "name": "DbInsert",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7ff9f759-fb8a-4f56-a034-de10eedc57aa",
+              "name": "success",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "06ef9811-58eb-4b7c-8c04-e82cf174fb83",
+              "name": "message",
+              "value": "Email already exists!!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        1792
+      ],
+      "id": "61920df3-8cf8-4524-bc3e-b01268d2855e",
+      "name": "response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01e07aeb-87fb-4041-9037-b240649990f4",
+              "name": "success",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "38df1008-1016-4ad6-b4dd-f6a2f494a35c",
+              "name": "message",
+              "value": "Email Subscribed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        1408
+      ],
+      "id": "fc6832ce-1556-4ad1-a4c2-bf13b8911f2c",
+      "name": "response1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "getQuestion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -464,
+        896
+      ],
+      "id": "c7331187-8800-49ec-9aa3-9f4eeabbdd35",
+      "name": "QuestionGeneration",
+      "webhookId": "713b412d-8c8c-4f87-a1d5-02edcba19e86",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=Welcome aboard! Here’s what you can expect",
+        "message": "=<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset=\"UTF-8\" />\n    <title>Welcome to the Learning App</title>\n  </head>\n  <body style=\"font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;\">\n\n    <table align=\"center\" cellpadding=\"0\" cellspacing=\"0\" width=\"600\" style=\"background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px;\">\n      <tr>\n        <td style=\"text-align: center; background: linear-gradient(135deg, #4a90e2, #50e3c2); color: white; padding: 20px; border-radius: 12px 12px 0 0;\">\n          <h2 style=\"margin: 0; font-size: 24px;\">👋 Welcome to the Learning App</h2>\n        </td>\n      </tr>\n\n      <tr>\n        <td style=\"padding: 20px;\">\n          <h3 style=\"color: #333;\">Dear Learner,</h3>\n          <p style=\"font-size: 16px; color: #444;\">\n            We’re excited to have you onboard! 🎉  \n            From today, you’ll receive <strong>one carefully curated question and answer every day</strong> to help you grow and learn continuously.\n          </p>\n\n          <h3 style=\"color: #333; margin-top: 20px;\">Here’s what to expect:</h3>\n          <div style=\"background-color: #f0f9ff; border-left: 4px solid #4a90e2; padding: 10px; border-radius: 6px; font-size: 14px; color: #333; line-height: 1.6;\">\n            <ul style=\"margin: 0; padding-left: 18px;\">\n              <li>📩 <strong>Daily Queries</strong> – Receive a new question every morning at <strong>9 AM</strong>.</li>\n              <li>✅ <strong>Detailed Answers</strong> – Get the answer revealed every evening at <strong>8 PM</strong>.</li>\n              <li>🧠 <strong>Medical Knowledge</strong> – Learn from real clinical datasets to strengthen your expertise.</li>\n              <li>🚀 <strong>Consistent Growth</strong> – A little progress every day adds up to big results.</li>\n            </ul>\n          </div>\n\n          <p style=\"margin-top: 20px; font-size: 16px; color: #444;\">\n            Let’s make learning a daily habit and grow together. 🌱  \n            Stay curious, stay inspired!\n          </p>\n        </td>\n      </tr>\n\n      <tr>\n        <td style=\"padding: 20px; text-align: center; color: #888; font-size: 14px;\">\n          <p>Best regards, <br><strong>Your Learning Team 🚀</strong></p>\n        </td>\n      </tr>\n    </table>\n\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        688,
+        1408
+      ],
+      "id": "34ede46d-dc1c-4f7e-8a42-6e3fbd394f41",
+      "name": "Send a message1",
+      "webhookId": "af26c425-e4d9-45aa-9042-10dca6906087",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yY0Xnru6cw0st3G0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const zones = [\n  \"America/Denver\",\n  \"America/Phoenix\",\n  \"America/New_York\",\n  \"Asia/Dubai\",\n  \"America/Chicago\",\n  \"America/Los_Angeles\",\n  \"Australia/Sydney\"\n];\n\nconst triggers = [];\n\nzones.forEach(zone => {\n  // Get current date/time in the specific timezone\n  const local = new Date().toLocaleString(\"en-US\", { timeZone: zone });\n  const localDateObj = new Date(local);\n  //console.log(\"local \"+local);\n  //console.log(\"localDateObj \"+localDateObj);\n  // Format as yyyy-mm-dd HH:mm\n  const yyyy = localDateObj.getFullYear();\n  const mm = String(localDateObj.getMonth() + 1).padStart(2, \"0\");\n  const dd = String(localDateObj.getDate()).padStart(2, \"0\");\n  const hh = String(localDateObj.getHours()).padStart(2, \"0\");\n  const min = String(localDateObj.getMinutes()).padStart(2, \"0\");\n\n  const dateStr = `${yyyy}-${mm}-${dd}`;\n  const timeStr = `${hh}:${min}`;\n\n   if ((timeStr >= \"20:00\" && timeStr <= \"20:15\")) {\n    triggers.push({ zone, date: dateStr,localTime: timeStr });\n   \n  }\n \n});\nreturn triggers.length > 0 ? triggers : [];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        2448
+      ],
+      "id": "efab2075-84b0-4e7f-a3fe-1191ce92d176",
+      "name": "zoneDateTime",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input items\nconst items = $input.all(); // array of input items\n\n// Extract dates from all items\nconst dates = items.map(item => item.json.date);\n\n// Keep only unique dates (removes duplicates)\nconst uniqueDates = [...new Set(dates)];\n\n// Return as a single item with the date(s)\nreturn [\n  {\n    json: {\n      date: uniqueDates[0] // take the first unique date\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        2752
+      ],
+      "id": "9d5e0a04-ac7d-4ed3-87b5-5db1e69cdec4",
+      "name": "getDateOnly",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1344,
+        2736
+      ],
+      "id": "6c300883-41a4-4903-a8a2-ca5eb9121218",
+      "name": "Merge4",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a42f8bf-2651-4d02-be4e-501b73cdfc9d",
+              "name": "emails",
+              "value": "={{ $json[\"email\"].join(\",\") }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1376,
+        2448
+      ],
+      "id": "0c350897-c40b-45db-93b7-ebadebb5d5b9",
+      "name": "allEmail2"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        2448
+      ],
+      "id": "30a9d42e-16d7-4402-835b-049cf174e365",
+      "name": "emailIds2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "subscribed_user_tbl",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "timeZone",
+              "condition": "eq",
+              "keyValue": "={{ $json.zone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2480
+      ],
+      "id": "0ad6c81b-e14a-4588-ab49-027dd736d217",
+      "name": "Get many rows1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        2464
+      ],
+      "id": "0e0a0f70-829d-4bba-a13a-044db0bc8f44",
+      "name": "Loop Over Items",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e0fb8987-a46c-4768-9da5-bd3f4f07031e",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "6cbe11fb-977c-4f3f-bdd7-c269dc399014",
+              "leftValue": "={{ $items().length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        2448
+      ],
+      "id": "de426ac5-bc02-418e-8d5c-5aa492ec8c8d",
+      "name": "zoneExists"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0470781-f453-4a41-8a98-5dabfeec3d25",
+              "name": "prompt",
+              "value": "=Summarize the following SQL question and answer into 3–5 concise key learning points. \n- Only list the main concepts. \n- Do not write lengthy explanations. \n- Use simple, clear language and bullet points.\n\nQuestion: {{$json[\"question\"]}}\nAnswer: {{$json[\"correct_answer\"]}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1856,
+        2448
+      ],
+      "id": "558cd9fb-b857-4681-9df2-fecfa075012c",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "questions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_date",
+              "keyValue": "={{ $json.date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        2448
+      ],
+      "id": "00030e3d-378e-41dc-992e-3617c45d3c65",
+      "name": "GetQuestion2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.emails }}",
+        "subject": "=Query of the Day",
+        "message": "=<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset=\"UTF-8\" />\n    <title>Query of the Day</title>\n  </head>\n  <body style=\"font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;\">\n\n    <table align=\"center\" cellpadding=\"0\" cellspacing=\"0\" width=\"600\" style=\"background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px;\">\n      <tr>\n        <td style=\"text-align: center; background: linear-gradient(135deg, #4a90e2, #50e3c2); color: white; padding: 20px; border-radius: 12px 12px 0 0;\">\n          <h2 style=\"margin: 0; font-size: 24px;\">✨ Query of the Day ✨</h2>\n        </td>\n      </tr>\n\n      <tr>\n        <td style=\"padding: 20px;\">\n          <h3 style=\"color: #333;\">Question</h3>\n          <p style=\"font-size: 16px; color: #444;\">{{$json[\"question\"]}}</p>\n\n          <h3 style=\"color: #333; margin-top: 20px;\">Answer</h3>\n          <p style=\"font-size: 16px; color: #2d862d; font-weight: bold;\">{{$json[\"correct_answer\"]}}</p>\n\n          <h3 style=\"color: #333; margin-top: 20px;\">Key Points</h3>\n          <div style=\"background-color: #f0f9ff; border-left: 4px solid #4a90e2; padding: 10px; border-radius: 6px; font-size: 14px; color: #333;\">\n            <pre style=\"margin: 0; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;\">{{$json[\"key_points\"]}}</pre>\n          </div>\n        </td>\n      </tr>\n\n      <tr>\n        <td style=\"padding: 20px; text-align: center; color: #888; font-size: 14px;\">\n          <p>Best regards, <br><strong>Your Team 🚀</strong></p>\n        </td>\n      </tr>\n    </table>\n\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3008,
+        2432
+      ],
+      "id": "c1f8040c-c47e-4ad7-bf6e-0ce7529c1426",
+      "name": "Send a message3",
+      "webhookId": "af26c425-e4d9-45aa-9042-10dca6906087",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yY0Xnru6cw0st3G0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2032,
+        2768
+      ],
+      "id": "f9e9000d-c21c-4518-8880-f157551e6d27",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        2448
+      ],
+      "id": "a36c04a0-4f9e-4144-9678-e5f415f1f0f9",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rqecN4s5ilbFFK5Z",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2656,
+        2432
+      ],
+      "id": "7ee86669-8fa3-4d8d-8e9f-bd575c7922ec",
+      "name": "Merge6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "acfc57e8-f2c8-4002-891c-1bb5de1b54cc",
+              "name": "key_points",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2400,
+        2448
+      ],
+      "id": "c8acd7b1-a3bd-4c4b-8b26-c4f3bd5f7f88",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input items\nconst items = $input.all(); // array of input items\n\n// Extract dates from all items\nconst dates = items.map(item => item.json.date);\n\nfunction timeToNumber(timeStr) {\n  const [hours, minutes] = timeStr.split(\":\").map(Number);\n  return hours * 60 + minutes;\n}\n// Keep only unique dates (removes duplicates)\nconst uniqueDates = [...new Set(dates)];\n\n// Extract times from all items\nconst time = items.map(item => item.json.localTime);\n\n// Keep only unique dates (removes duplicates)\nconst uniqueTime = [...new Set(time)];\nconst numericTime = timeToNumber(uniqueTime[0]);\nconst mrng_start=540;\nconst mrng_end=555;\n// const evng_start=1200;\n// const evng_end=1215;\nconst evng_start=1300;\nconst evng_end=1515;\nlet result=false;\nif((numericTime >= mrng_start && numericTime <= mrng_end) ||\n  (numericTime >= evng_start && numericTime <= evng_end) ){\n  result=true;\n}\n// Return as a single item with the date(s)\nreturn [\n  {\n    json: {\n      date: uniqueDates[0], // take the first unique date\n      time: uniqueTime[0],\n      numericTime: numericTime,\n      result:result,\n      mrng_start:mrng_start,\n      mrng_end:mrng_end,\n      evng_start:evng_start,\n      evng_end:evng_end\n      \n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        3952
+      ],
+      "id": "b136a6e7-73d9-4be9-a886-974f6cf1b0d0",
+      "name": "getDateOnly1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        3936
+      ],
+      "id": "4402fb79-46f4-406c-a2ac-608d951c79bc",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a42f8bf-2651-4d02-be4e-501b73cdfc9d",
+              "name": "emails",
+              "value": "={{ $json[\"email\"].join(\",\") }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        3728
+      ],
+      "id": "7d4e3ab7-99a6-430e-a3ef-7780209c304c",
+      "name": "allEmail3"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        416,
+        3728
+      ],
+      "id": "77af0806-ab13-4cb1-85ac-4ecffc71775b",
+      "name": "emailIds3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "subscribed_user_tbl",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "timeZone",
+              "condition": "eq",
+              "keyValue": "={{ $json.zone }}"
+            },
+            {
+              "keyName": "subscribed",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        3760
+      ],
+      "id": "becab2b4-6a54-43e3-8e30-dae3e404f8ca",
+      "name": "Get many rows2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -192,
+        3744
+      ],
+      "id": "ac34ce6d-3bcc-4e68-9c8f-5580fe3cc50d",
+      "name": "Loop Over Items1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e0fb8987-a46c-4768-9da5-bd3f4f07031e",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "6cbe11fb-977c-4f3f-bdd7-c269dc399014",
+              "leftValue": "={{ $items().length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -928,
+        3728
+      ],
+      "id": "cc8d175d-5bcc-46d7-8eac-038e4f62daab",
+      "name": "zoneExists1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "questions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_date",
+              "keyValue": "={{ $json.date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        3712
+      ],
+      "id": "943a1ad5-1898-4610-b5b7-5dcaa96e1671",
+      "name": "GetQuestion3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1408,
+        3920
+      ],
+      "id": "221e42e9-f13f-462e-8c0a-53ffc62d8628",
+      "name": "Merge7"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        608,
+        3184
+      ],
+      "id": "07d4660f-2fb5-4443-8d85-992c93911e45",
+      "name": "Merge8"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assume your array comes from the previous node\nconst timeZones =$input.first().json.timeZone ; // replace with actual field\n\n// Get distinct values\nconst distinctTimeZones = [...new Set(timeZones)];\n\n// Return as JSON\nreturn [\n  {\n    json: {\n      timeZones: distinctTimeZones\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1408,
+        3728
+      ],
+      "id": "9ea3c8d5-bdf5-4332-8ee2-790f552e9a5f",
+      "name": "DistinctTimezones"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "timeZone"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        3728
+      ],
+      "id": "0085f161-c3da-45a3-8b88-b17c568ba53d",
+      "name": "allTimeZones"
+    },
+    {
+      "parameters": {
+        "url": "https://xrxhdsdxqugurrtwvxek.supabase.co/rest/v1/subscribed_user_tbl?select=timeZone",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyeGhkc2R4cXVndXJydHd2eGVrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjQxMTgzNywiZXhwIjoyMDcxOTg3ODM3fQ.vSYFXYpljoInTvDIbFTp1kySbow5BPHliI145ngqKkE\",\n\"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyeGhkc2R4cXVndXJydHd2eGVrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjQxMTgzNywiZXhwIjoyMDcxOTg3ODM3fQ.vSYFXYpljoInTvDIbFTp1kySbow5BPHliI145ngqKkE\",\n\"Content-Type\": \"application/json\"\n\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1952,
+        3728
+      ],
+      "id": "659dfc02-cd55-4a91-b4f1-fe2b4bdaeab2",
+      "name": "getTimezonesfromDB"
+    },
+    {
+      "parameters": {
+        "jsCode": "const zones =$input.first().json.timeZones;\n// [\n//   \"America/Denver\",\n//   \"America/Phoenix\",\n//   \"America/New_York\",\n//   \"Asia/Dubai\",\n//   \"America/Chicago\",\n//   \"America/Los_Angeles\",\n//   \"Australia/Sydney\"\n// ];\n\nconst triggers = [];\n\nzones.forEach(zone => {\n  // Get current date/time in the specific timezone\n  const local = new Date().toLocaleString(\"en-US\", { timeZone: zone });\n  const localDateObj = new Date(local);\n  //console.log(\"local \"+local);\n  //console.log(\"localDateObj \"+localDateObj);\n  // Format as yyyy-mm-dd HH:mm\n  const yyyy = localDateObj.getFullYear();\n  const mm = String(localDateObj.getMonth() + 1).padStart(2, \"0\");\n  const dd = String(localDateObj.getDate()).padStart(2, \"0\");\n  const hh = String(localDateObj.getHours()).padStart(2, \"0\");\n  const min = String(localDateObj.getMinutes()).padStart(2, \"0\");\n\n  const dateStr = `${yyyy}-${mm}-${dd}`;\n  const timeStr = `${hh}:${min}`;\n\n   if ((timeStr >= \"09:00\" && timeStr <= \"09:15\") || (timeStr >= \"15:00\" && timeStr <= \"16:59\")) {\n    triggers.push({ zone, date: dateStr,localTime: timeStr });\n   \n  }\n \n});\nreturn triggers.length > 0 ? triggers : [];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        3728
+      ],
+      "id": "fa7db19f-4609-44ab-8805-405f94a06fee",
+      "name": "CheckZoneTime",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://xrxhdsdxqugurrtwvxek.supabase.co/rest/v1/subscribed_user_tbl?select=timeZone",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"apikey\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyeGhkc2R4cXVndXJydHd2eGVrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjQxMTgzNywiZXhwIjoyMDcxOTg3ODM3fQ.vSYFXYpljoInTvDIbFTp1kySbow5BPHliI145ngqKkE\",\n\"Authorization\": \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyeGhkc2R4cXVndXJydHd2eGVrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjQxMTgzNywiZXhwIjoyMDcxOTg3ODM3fQ.vSYFXYpljoInTvDIbFTp1kySbow5BPHliI145ngqKkE\",\n\"Content-Type\": \"application/json\"\n\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1328,
+        2448
+      ],
+      "id": "4a1ceafd-ce2b-4fdc-b642-32318a06b1b9",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "timeZone"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        2448
+      ],
+      "id": "2b384a87-4922-4360-81f4-303cf9c8a11b",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assume your array comes from the previous node\nconst timeZones =$input.first().json.timeZone ; // replace with actual field\n\n// Get distinct values\nconst distinctTimeZones = [...new Set(timeZones)];\n\n// Return as JSON\nreturn [\n  {\n    json: {\n      timeZones: distinctTimeZones\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        2448
+      ],
+      "id": "c9cf072b-81c3-4665-b842-6948a20a7a98",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2256,
+        3728
+      ],
+      "id": "ac22a939-d204-47f8-90f5-c825e0db6a14",
+      "name": "QuestionTrigger1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1664,
+        2448
+      ],
+      "id": "6803cca4-4b85-4d11-bc59-568a48029a9b",
+      "name": "Q&ATrigger1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c4558f8c-043c-47b5-b3b0-d1da74f2934d",
+              "leftValue": "={{ $json.numericTime }}",
+              "rightValue": "={{ $json.mrng_start }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "c0727767-c069-4d49-baf0-b99b7405fa7a",
+              "leftValue": "={{ $json.numericTime }}",
+              "rightValue": "={{ $json.mrng_end }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "5c63d54f-929c-4ec5-9975-0f2a0a9b8138",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        3664
+      ],
+      "id": "2979e0d6-f637-4a85-86d7-d51f3d9c3e17",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0470781-f453-4a41-8a98-5dabfeec3d25",
+              "name": "prompt",
+              "value": "=Summarize the following SQL question and answer into 3–5 concise key learning points. \n- Only list the main concepts. \n- Do not write lengthy explanations. \n- Use simple, clear language and bullet points.\n\nQuestion: {{$json[\"question\"]}}\nAnswer: {{$json[\"correct_answer\"]}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2224,
+        3952
+      ],
+      "id": "26eab7b3-c30f-416d-bec4-b89d69ca8023",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        3968
+      ],
+      "id": "f2cdafe8-06f5-47d3-a419-8bd3b21772da",
+      "name": "Message a model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rqecN4s5ilbFFK5Z",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3088,
+        3952
+      ],
+      "id": "1858626d-7823-4c63-99a2-2d006115c0f0",
+      "name": "Merge9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "acfc57e8-f2c8-4002-891c-1bb5de1b54cc",
+              "name": "key_points",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2816,
+        3968
+      ],
+      "id": "25c9ceff-ef27-4d7a-b7f2-24ab41ccf71d",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "sendTo": "=nirthi2018@gmail.com",
+        "subject": "=Query of the Day",
+        "message": "=<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset=\"UTF-8\" />\n    <title>Query of the Day</title>\n  </head>\n  <body style=\"font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;\">\n\n    <table align=\"center\" cellpadding=\"0\" cellspacing=\"0\" width=\"600\" style=\"background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px;\">\n      <tr>\n        <td style=\"text-align: center; background: linear-gradient(135deg, #4a90e2, #50e3c2); color: white; padding: 20px; border-radius: 12px 12px 0 0;\">\n          <h2 style=\"margin: 0; font-size: 24px;\">✨ Query of the Day ✨</h2>\n        </td>\n      </tr>\n\n      <tr>\n        <td style=\"padding: 20px;\">\n          <h3 style=\"color: #333;\">Question</h3>\n          <p style=\"font-size: 16px; color: #444;\">{{$json[\"question\"]}}</p>\n\n          <h3 style=\"color: #333; margin-top: 20px;\">Answer</h3>\n          <p style=\"font-size: 16px; color: #2d862d; font-weight: bold;\">{{$json[\"correct_answer\"]}}</p>\n\n          <h3 style=\"color: #333; margin-top: 20px;\">Key Points</h3>\n          <div style=\"background-color: #f0f9ff; border-left: 4px solid #4a90e2; padding: 10px; border-radius: 6px; font-size: 14px; color: #333;\">\n            <pre style=\"margin: 0; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;\">{{$json[\"key_points\"]}}</pre>\n          </div>\n        </td>\n      </tr>\n\n      <tr>\n        <td style=\"padding: 20px; text-align: center; color: #888; font-size: 14px;\">\n          <p>Best regards, <br><strong>Your Team 🚀</strong></p>\n        </td>\n      </tr>\n    </table>\n\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3328,
+        3952
+      ],
+      "id": "2ebefa49-b639-4955-b78a-6ca0d6672df7",
+      "name": "Reply Message",
+      "webhookId": "af26c425-e4d9-45aa-9042-10dca6906087",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yY0Xnru6cw0st3G0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "=nirthi2018@gmail.com",
+        "subject": "=Query of the Day",
+        "message": "=<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset=\"UTF-8\" />\n    <title>Query of the Day</title>\n  </head>\n  <body style=\"margin: 0; padding: 0; background-color: #f4f6f9; font-family: Arial, sans-serif;\">\n\n    <!-- Container -->\n    <table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\n      <tr>\n        <td align=\"center\" style=\"padding: 30px 10px;\">\n          <table cellpadding=\"0\" cellspacing=\"0\" width=\"600\" style=\"background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden;\">\n            \n            <!-- Header -->\n            <tr>\n              <td align=\"center\" style=\"background: linear-gradient(135deg, #4a90e2, #50e3c2); padding: 30px 20px; color: #ffffff;\">\n                <h2 style=\"margin: 0; font-size: 26px; font-weight: bold; letter-spacing: 0.5px;\">✨ Query of the Day ✨</h2>\n              </td>\n            </tr>\n\n            <!-- Content -->\n            <tr>\n              <td style=\"padding: 30px 25px; color: #333333;\">\n                <h3 style=\"margin: 0 0 10px; font-size: 20px; color: #222;\">Question</h3>\n                <p style=\"margin: 0; font-size: 16px; line-height: 1.6; color: #555;\">\n                  {{$json[\"question\"]}}\n                </p>\n              </td>\n            </tr>\n\n            <!-- Footer -->\n            <tr>\n              <td align=\"center\" style=\"padding: 20px; background-color: #fafafa; font-size: 14px; color: #666; border-top: 1px solid #eee;\">\n                <p style=\"margin: 0;\">Best regards, <br><strong>Your Team 🚀</strong></p>\n              </td>\n            </tr>\n\n          </table>\n        </td>\n      </tr>\n    </table>\n\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2128,
+        3648
+      ],
+      "id": "910854c6-9c31-42d2-93ec-0cd196ffd39b",
+      "name": "Query MEssage",
+      "webhookId": "af26c425-e4d9-45aa-9042-10dca6906087",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yY0Xnru6cw0st3G0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input items\nconst items = $input.all(); // array of input items\n\n// Extract dates from all items\nconst dates = items.map(item => item.json.date);\n\nfunction timeToNumber(timeStr) {\n  const [hours, minutes] = timeStr.split(\":\").map(Number);\n  return hours * 60 + minutes;\n}\n// Keep only unique dates (removes duplicates)\nconst uniqueDates = [...new Set(dates)];\n\n// Extract times from all items\nconst time = items.map(item => item.json.localTime);\n\n// Keep only unique dates (removes duplicates)\nconst uniqueTime = [...new Set(time)];\nconst numericTime = timeToNumber(uniqueTime[0]);\n\n\n// Return as a single item with the date(s)\nreturn [\n  {\n    json: {\n      date: uniqueDates[0], // take the first unique date\n      time: uniqueTime[0],\n      numericTime: numericTime\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2400,
+        3120
+      ],
+      "id": "f6c5f6b2-2cce-4c18-9940-b51a94c22d02",
+      "name": "getDateOnly2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "972c78bd-4c0a-4e99-8bd1-0aa5adafde32",
+              "leftValue": "={{ $json.numericTime }}",
+              "rightValue": "={{ $json.evng_start }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "a0954f25-7b09-4774-aa1b-1b003a3132ec",
+              "leftValue": "={{ $json.numericTime }}",
+              "rightValue": "={{ $json.evng_end }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "4827ceda-025a-43e6-a38f-de63e74dfa87",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1888,
+        3808
+      ],
+      "id": "30cb413a-b9b0-4023-8b4d-44801fb2d9e9",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1520,
+        4496
+      ],
+      "id": "b9e47c8c-9468-4d3c-937a-48a6b22ccdfd",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78a9cfc2-45cf-4085-aac2-35a6325fe9f8",
+              "name": "email",
+              "value": "=indu.dharshu@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "31f943a7-83f7-4980-b1ef-1ce3e90fd52e",
+              "name": "zone",
+              "value": "=America/New_York",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        4448
+      ],
+      "id": "03b579cc-435e-4ba9-8ec0-c0824b9d1cff",
+      "name": "Inputs1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "subscribed_user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.email }}"
+            },
+            {
+              "keyName": "subscribed",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        160,
+        4448
+      ],
+      "id": "5bf98e8f-0118-4534-b93f-d747f5fe33b6",
+      "name": "CheckEmail1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8443564d-f362-46ac-bac1-fe45b2bb16f5",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "22243202-fb71-48bd-9d21-8a9ee7da0644",
+              "leftValue": "={{ $items().length }}",
+              "rightValue": "1",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        4448
+      ],
+      "id": "0bb2d49d-6b79-478e-bdc4-a4a0243dad0a",
+      "name": "EmailExists1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7ff9f759-fb8a-4f56-a034-de10eedc57aa",
+              "name": "success",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "06ef9811-58eb-4b7c-8c04-e82cf174fb83",
+              "name": "message",
+              "value": "Unsubscribed Successfully !!!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        4608
+      ],
+      "id": "7299bc4c-e9f9-4806-9970-664cbbfb33a6",
+      "name": "response2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01e07aeb-87fb-4041-9037-b240649990f4",
+              "name": "success",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "38df1008-1016-4ad6-b4dd-f6a2f494a35c",
+              "name": "message",
+              "value": "Email doesn't exists to unsubscribe !!!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        4320
+      ],
+      "id": "3fe5f168-a76c-45ff-bb9b-1db351d40eee",
+      "name": "response3"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "subscribed_user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "={{ $json.email }}"
+            },
+            {
+              "keyName": "subscribed",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "subscribed",
+              "fieldValue": "false"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        640,
+        4608
+      ],
+      "id": "55eb3b39-eeda-459d-9827-8ec5164ebe0d",
+      "name": "DbInsert2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "m8NDMsyQnLz33Iv6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "subscribe",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -496,
+        4448
+      ],
+      "id": "61e34ce6-bd55-46c3-a2b8-092e1bc7fefd",
+      "name": "UnSubscribe",
+      "webhookId": "141c85ec-edd6-4299-92e0-f0566e6092b3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        5440
+      ],
+      "id": "7bc3a79a-6e1c-4c36-aba7-7259f53cc369",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an evaluator. Compare the following inputs and produce a structured evaluation.\n\nQuestion:\nWhat % of the dataset is male vs female?\n\nCorrect Answer:\nSELECT ROUND(COUNT(CASE WHEN gender = 'Female' THEN 1 END) * 100.0 / COUNT(*),2) AS Female_percentage,\n  ROUND(COUNT(CASE WHEN gender = 'Male' THEN 1 END) * 100.0 / COUNT(*),2) AS Male_percentage\n FROM public.demography;\n\nUser Submitted Answer:\nSELECT ROUND((CASE WHEN gender = 'Feale' THEN 1 END) * 100.0 / COUNT(*),2) AS Female_percentage,\n  ROUND(COUNT(CASE WHEN gender = 'Mle' THEN 1 END) * 100.0 / COUNT(*),2) AS Male_percentage\n FROM public.demography;\n\nSteps:\n1. Check if the user’s answer directly addresses the question.\n2. Identify all the elements in the correct answer that are present in the user’s answer. List them under \"present\".\n3. Identify what is missing, incomplete, or logically wrong in the user’s answer. List them under \"missing\".\n4. Provide a short overall feedback in plain English that compares the answer to both the question and the correct answer.\n\nReturn the result strictly in this JSON format:\n\n{\n  \"score\": number, \n  \"level\": \"perfect\" | \"nearly\" | \"good\" | \"keep-going\", \n  \"title\": string, \n  \"message\": string, \n  \"checklist\": [\n    {\n      \"requirement\": string,\n      \"met\": true | false,\n      \"hint\": string (optional)\n    },\n    ...\n  ]\n}\n\nNotes:\n- Score should be based on how many requirements are met.\n- Level and title should reflect overall quality.\n- Checklist should include key SQL elements or logical elements required to answer the question correctly.\n- Ensure the JSON is valid and parsable.\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        5440
+      ],
+      "id": "158eb7c4-84d0-450b-998b-566ab040fbd5",
+      "name": "Evaluator",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rqecN4s5ilbFFK5Z",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "operation": "get",
+        "tableId": "subscribed_user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "indu.dharshu@gmail.com"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3696,
+        2160
+      ],
+      "id": "0aef57f0-4c70-4554-8adc-a80d89c1bc78",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3328,
+        2432
+      ],
+      "id": "f8d7bfdf-3600-457a-8c2d-bdb0f94d0c8c",
+      "name": "Send a message",
+      "webhookId": "8c81272a-4f56-423e-8c7d-131f92aa3335",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yY0Xnru6cw0st3G0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "08f7dde2-6bc6-4381-a027-be102831f1d5",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        5040
+      ],
+      "id": "dcbf5ac0-c070-4fa1-9e64-a5044b1b6cfd",
+      "name": "SubmitAnswer",
+      "webhookId": "08f7dde2-6bc6-4381-a027-be102831f1d5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "getHour": {
+      "main": [
+        [
+          {
+            "node": "timeb/w9&20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getTimezonefromFE": {
+      "main": [
+        [
+          {
+            "node": "getHour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getQ&A": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "timeb/w9&20": {
+      "main": [
+        [
+          {
+            "node": "getQuestions1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "getQ&A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getQuestions1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subscribe": {
+      "main": [
+        [
+          {
+            "node": "Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inputs": {
+      "main": [
+        [
+          {
+            "node": "CheckEmail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "CheckEmail": {
+      "main": [
+        [
+          {
+            "node": "EmailExists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmailExists": {
+      "main": [
+        [
+          {
+            "node": "inputs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "inputs": {
+      "main": [
+        [
+          {
+            "node": "DbInsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DbInsert": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QuestionGeneration": {
+      "main": [
+        [
+          {
+            "node": "getTimezonefromFE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zoneDateTime": {
+      "main": [
+        [
+          {
+            "node": "zoneExists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getDateOnly": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "allEmail2": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "emailIds2": {
+      "main": [
+        [
+          {
+            "node": "allEmail2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "emailIds2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zoneExists": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "getDateOnly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetQuestion2": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "GetQuestion2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getDateOnly1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "GetQuestion3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "allEmail3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "emailIds3": {
+      "main": [
+        [
+          {
+            "node": "allEmail3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "emailIds3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get many rows2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zoneExists1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "getDateOnly1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetQuestion3": {
+      "main": [
+        [
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge7": {
+      "main": [
+        [
+          {
+            "node": "Merge9",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DistinctTimezones": {
+      "main": [
+        [
+          {
+            "node": "CheckZoneTime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "allTimeZones": {
+      "main": [
+        [
+          {
+            "node": "DistinctTimezones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getTimezonesfromDB": {
+      "main": [
+        [
+          {
+            "node": "allTimeZones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckZoneTime": {
+      "main": [
+        [
+          {
+            "node": "zoneExists1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge8": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "zoneDateTime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QuestionTrigger1": {
+      "main": [
+        [
+          {
+            "node": "getTimezonesfromDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q&ATrigger1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge6": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Merge9",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge9": {
+      "main": [
+        []
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inputs1": {
+      "main": [
+        [
+          {
+            "node": "CheckEmail1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckEmail1": {
+      "main": [
+        [
+          {
+            "node": "EmailExists1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmailExists1": {
+      "main": [
+        [
+          {
+            "node": "response3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DbInsert2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UnSubscribe": {
+      "main": [
+        [
+          {
+            "node": "Inputs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Evaluator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DbInsert2": {
+      "main": [
+        [
+          {
+            "node": "response2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message3": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "25f8473b-320e-4636-b7d5-7abcb709c797",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e4457270c9ee4f195ff1ee3f1a980f8e822535f65eb83686db66b0b94e147c5b"
+  },
+  "id": "7O1HHNDOe9OG2jd8",
+  "tags": []
+}
