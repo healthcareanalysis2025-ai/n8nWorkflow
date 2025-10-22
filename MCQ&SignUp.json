@@ -1,0 +1,633 @@
+{
+  "name": "LearningApp2.0",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        -368
+      ],
+      "id": "e79f35a0-542a-4ea1-8917-1e2521b25b07",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "mcq_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "posted_date",
+              "keyValue": "={{ $json.currentDate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -832
+      ],
+      "id": "cceb0ce4-d490-4f42-ac06-b4e36b4d5653",
+      "name": "Get MCQ",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8443564d-f362-46ac-bac1-fe45b2bb16f5",
+              "leftValue": "={{  $json.status }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -304,
+        -832
+      ],
+      "id": "9b190aaf-cb0c-46ae-a6f7-ebf49d99ae36",
+      "name": "MCQExists",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": \"Data exists!!\",\n  \"data\": {{ $json.mcqs }}\n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -848
+      ],
+      "id": "da282a6b-290d-4f3d-b8de-c4346b6d3bf4",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"currentDate\": \"2025-10-22\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -912,
+        -832
+      ],
+      "id": "7677a6ce-651e-4795-a1cf-9ce4a9c2d480",
+      "name": "GetDate"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -592,
+        -1088
+      ],
+      "id": "58eb7f34-f6ac-4c4d-921e-040f54adf392",
+      "name": "Date&QuestionMerge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items from Merge node\nconst allInputs = $input.all();\n\n// First input (date)\nconst dateInput = allInputs[0].json; // e.g. { currentDate: \"2025-10-21\" }\n\n// Second input(s) — MCQs\nconst mcqItems = allInputs.slice(1).map(item => item.json); // all MCQs\n\n// Determine if MCQs contain real data (true if at least one has keys)\nconst hasMcqs = mcqItems.some(mcq => Object.keys(mcq).length > 0);\n\n// Return as a single JSON object\nreturn [\n  {\n    json: {\n      currentDate: dateInput.currentDate,\n      status: hasMcqs,\n      mcqs: mcqItems\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -832
+      ],
+      "id": "bb446aa0-a94b-4af2-9a32-cc4e43eff20c",
+      "name": "ConsolidatedOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "questions_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_date",
+              "keyValue": "={{ $json.currentDate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -624
+      ],
+      "id": "9776b53d-8298-4a29-bbfb-3855638b3244",
+      "name": "GetQuestion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const question = $input.first().json.question;\nconst answer = $input.first().json.correct_answer;\n\nreturn [\n  {\n    json: {\n      prompt: `\nYou are an expert SQL and data analysis question generator specialized in **PhysioNet cardiac datasets**.\n\n### 🎯 Goal\nGiven an SQL question and its correct SQL answer, generate **between 2 and 5** high-quality multiple-choice questions (MCQs) that test:\n- The SQL logic and operations used in the given query,\n- The understanding of the PhysioNet cardiac dataset structure (e.g., tables like demography, labs, patienthistory, echocardiogram, etc.),\n- The interpretation of how the query manipulates or analyzes patient data.\n\n### ⚙️ Strict Rules\n1. You must generate **at least 2 and at most 5** MCQs.\n2. Each MCQ must be **directly derived** from the provided SQL query and its logic.\n3. **Do not** introduce new columns, tables, or data unrelated to the query or PhysioNet cardiac dataset.\n4. Focus on concepts like joins, CTEs, subqueries, aggregation, or schema interpretation from the given SQL.\n5. Keep questions clear, technical, and relevant — not general SQL trivia.\n6. For every MCQ, provide **4 options (A, B, C, D)** and mark **exactly one correct answer**.\n\n### 📦 Output Format\nReturn your answer **only as valid JSON**, using this structure:\n[\n  {\n    \"question\": \"string\",\n    \"options\": {\n      \"A\": \"string\",\n      \"B\": \"string\",\n      \"C\": \"string\",\n      \"D\": \"string\"\n    },\n    \"correct\": \"A\"\n  }\n]\n\n### 🧩 Input Data\nSQL Question: \"${question}\"\nSQL Answer: \"${answer}\"\n`\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -624
+      ],
+      "id": "0c1ede2f-7ed9-4f55-b88f-3ba12cf35192",
+      "name": "PromptGeneration"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -624
+      ],
+      "id": "47b01e3d-ba9e-462d-839b-3a1b59821c6d",
+      "name": "MCQ_LLM_Call",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ezgVljkjN1XtIjtH",
+          "name": "HAQKey"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        -768
+      ],
+      "id": "82878c23-7164-438e-a17b-a6018566d45b",
+      "name": "Question&MCQ"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst inputs = $input.all();\n\n// Array to hold parsed MCQs\nlet outputItems = [];\n\n// Iterate over all inputs\nfor (const item of inputs) {\n    const json = item.json;\n    const  question_id= $input.first().json.question_id || null;\n    const posted_date= $input.first().json.post_date || new Date().toISOString();\n    // Only process items that have content.parts\n    if (json.content && json.content.parts && json.content.parts.length > 0) {\n        const text = json.content.parts[0].text;\n\n        let mcqs;\n        try {\n            // Parse JSON string inside text\n            mcqs = JSON.parse(text.replace(/\\n/g, \"\"));\n        } catch (err) {\n            throw new Error(\"Failed to parse LLM output JSON: \" + err + \"\\nOutput: \" + text);\n        }\n\n        // Map each MCQ into n8n item\n        mcqs.forEach(mcq => {\n            outputItems.push({\n                json: {\n                    question: mcq.question,\n                    options: mcq.options || null,\n                    correct_option: mcq.correct || null,\n                    question_id:question_id,\n                    posted_date: posted_date\n                }\n            });\n        });\n    }\n}\n\n// Return only parsed MCQs\nreturn outputItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -768
+      ],
+      "id": "5201d717-6106-4a1f-92e7-38906ac29f7a",
+      "name": "FormattingTosaveinDB"
+    },
+    {
+      "parameters": {
+        "tableId": "mcq_tbl",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -768
+      ],
+      "id": "8dbf5058-a34b-43bb-bebd-075b0a151647",
+      "name": "MCQDBInsertion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"full_name\": \"Indu\",\n  \"batch_code\": \"DVLPR\",\n  \"track\":\"DVLPR\",\n  \"email\":\"indu.darshu@gmail.com\",\n  \"password\":\"indu@123\",\n  \"status\":\"Active\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -848,
+        -96
+      ],
+      "id": "50ffa093-e5be-4da6-b747-642adb214c7a",
+      "name": "signUpInputs"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -96
+      ],
+      "id": "96fd2992-412c-4d4e-865f-3714e4b5f7f7",
+      "name": "getEmail",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -464,
+        -272
+      ],
+      "id": "fb3c6aa3-2c6b-4ef6-b814-a016a82f8b02",
+      "name": "Inputs&DBData"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input array\nconst items = $input.all().map(item => item.json);\n\n// Check if second element exists and is empty\nlet status = false;\nif (items[1] && Object.keys(items[1]).length > 0) {\n  status = true;\n}\n\n// Return combined output with status\nreturn [\n  {\n    json: {\n      data: items,\n      status: status\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -96
+      ],
+      "id": "95023463-a1fc-423f-9b6a-01168f6ff4ae",
+      "name": "FormattingwithStatus"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ea5e2adf-a839-4cf5-b933-e3612d02a9fa",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -96
+      ],
+      "id": "86c2e5f6-0d9f-42bd-9aa7-8b181fed0400",
+      "name": "CheckStatus"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item\nconst input = $input.first().json;\n\n// Extract only the first element of data\nconst inputData = input.data[0];\n\n// Return it as a new JSON object\nreturn [\n  { json: inputData }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1cfdf7a8-baa4-4f04-ac6c-0fee06f0b7b4",
+      "name": "InputDataFormatting"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"success\": \"false\",\n  \"message\": \"User with the given email already exists!!\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        -320
+      ],
+      "id": "5324e8ce-a84b-40b6-9b51-bb34dfdfca52",
+      "name": "OutputMessage"
+    },
+    {
+      "parameters": {
+        "tableId": "user_tbl",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "1ef7972e-e2f8-41d6-af3a-29444f2ce61a",
+      "name": "DBInsertion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "signUpInputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get MCQ": {
+      "main": [
+        [
+          {
+            "node": "Date&QuestionMerge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "MCQExists": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GetQuestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetDate": {
+      "main": [
+        [
+          {
+            "node": "Get MCQ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Date&QuestionMerge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date&QuestionMerge": {
+      "main": [
+        [
+          {
+            "node": "ConsolidatedOutput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ConsolidatedOutput": {
+      "main": [
+        [
+          {
+            "node": "MCQExists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetQuestion": {
+      "main": [
+        [
+          {
+            "node": "PromptGeneration",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Question&MCQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PromptGeneration": {
+      "main": [
+        [
+          {
+            "node": "MCQ_LLM_Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCQ_LLM_Call": {
+      "main": [
+        [
+          {
+            "node": "Question&MCQ",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Question&MCQ": {
+      "main": [
+        [
+          {
+            "node": "FormattingTosaveinDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormattingTosaveinDB": {
+      "main": [
+        [
+          {
+            "node": "MCQDBInsertion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "signUpInputs": {
+      "main": [
+        [
+          {
+            "node": "getEmail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inputs&DBData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getEmail": {
+      "main": [
+        [
+          {
+            "node": "Inputs&DBData",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Inputs&DBData": {
+      "main": [
+        [
+          {
+            "node": "FormattingwithStatus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormattingwithStatus": {
+      "main": [
+        [
+          {
+            "node": "CheckStatus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckStatus": {
+      "main": [
+        [
+          {
+            "node": "OutputMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "InputDataFormatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InputDataFormatting": {
+      "main": [
+        [
+          {
+            "node": "DBInsertion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "530abc30-1677-488f-8c60-4c5705f0e9fa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e4457270c9ee4f195ff1ee3f1a980f8e822535f65eb83686db66b0b94e147c5b"
+  },
+  "id": "cjndyhERXvhIF9VS",
+  "tags": []
+}
