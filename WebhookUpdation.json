@@ -1,0 +1,1212 @@
+{
+  "name": "LearningApp2.0",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        -704
+      ],
+      "id": "e79f35a0-542a-4ea1-8917-1e2521b25b07",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "mcq_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "posted_date",
+              "keyValue": "={{ $json.currentDate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -832
+      ],
+      "id": "cceb0ce4-d490-4f42-ac06-b4e36b4d5653",
+      "name": "Get MCQ",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8443564d-f362-46ac-bac1-fe45b2bb16f5",
+              "leftValue": "={{  $json.status }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -304,
+        -832
+      ],
+      "id": "9b190aaf-cb0c-46ae-a6f7-ebf49d99ae36",
+      "name": "MCQExists",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": \"Data exists!!\",\n  \"data\": {{ $json.mcqs }}\n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -848
+      ],
+      "id": "da282a6b-290d-4f3d-b8de-c4346b6d3bf4",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"currentDate\": \"2025-10-10\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -912,
+        -832
+      ],
+      "id": "7677a6ce-651e-4795-a1cf-9ce4a9c2d480",
+      "name": "GetDate"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -592,
+        -1088
+      ],
+      "id": "58eb7f34-f6ac-4c4d-921e-040f54adf392",
+      "name": "Date&QuestionMerge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items from Merge node\nconst allInputs = $input.all();\n\n// First input (date)\nconst dateInput = allInputs[0].json; // e.g. { currentDate: \"2025-10-21\" }\n\n// Second input(s) — MCQs\nconst mcqItems = allInputs.slice(1).map(item => item.json); // all MCQs\n\n// Determine if MCQs contain real data (true if at least one has keys)\nconst hasMcqs = mcqItems.some(mcq => Object.keys(mcq).length > 0);\n\n// Return as a single JSON object\nreturn [\n  {\n    json: {\n      currentDate: dateInput.currentDate,\n      status: hasMcqs,\n      mcqs: mcqItems\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -832
+      ],
+      "id": "bb446aa0-a94b-4af2-9a32-cc4e43eff20c",
+      "name": "ConsolidatedOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "questions_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "post_date",
+              "keyValue": "={{ $json.currentDate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -624
+      ],
+      "id": "9776b53d-8298-4a29-bbfb-3855638b3244",
+      "name": "GetQuestion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const question = $input.first().json.question;\nconst answer = $input.first().json.correct_answer;\n\nreturn [\n  {\n    json: {\n      prompt: `\nYou are an expert SQL and data analysis question generator specialized in **PhysioNet cardiac datasets**.\n\n### 🎯 Goal\nGiven an SQL question and its correct SQL answer, generate **between 2 and 5** high-quality multiple-choice questions (MCQs) that test:\n- The SQL logic and operations used in the given query,\n- The understanding of the PhysioNet cardiac dataset structure (e.g., tables like demography, labs, patienthistory, echocardiogram, etc.),\n- The interpretation of how the query manipulates or analyzes patient data.\n\n### ⚙️ Strict Rules\n1. You must generate **at least 2 and at most 5** MCQs.\n2. Each MCQ must be **directly derived** from the provided SQL query and its logic.\n3. **Do not** introduce new columns, tables, or data unrelated to the query or PhysioNet cardiac dataset.\n4. Focus on concepts like joins, CTEs, subqueries, aggregation, or schema interpretation from the given SQL.\n5. Keep questions clear, technical, and relevant — not general SQL trivia.\n6. For every MCQ, provide **4 options (A, B, C, D)** and mark **exactly one correct answer**.\n\n### 📦 Output Format\nReturn your answer **only as valid JSON**, using this structure:\n[\n  {\n    \"question\": \"string\",\n    \"options\": {\n      \"A\": \"string\",\n      \"B\": \"string\",\n      \"C\": \"string\",\n      \"D\": \"string\"\n    },\n    \"correct\": \"A\"\n  }\n]\n\n### 🧩 Input Data\nSQL Question: \"${question}\"\nSQL Answer: \"${answer}\"\n`\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -624
+      ],
+      "id": "0c1ede2f-7ed9-4f55-b88f-3ba12cf35192",
+      "name": "PromptGeneration"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -624
+      ],
+      "id": "47b01e3d-ba9e-462d-839b-3a1b59821c6d",
+      "name": "MCQ_LLM_Call",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ezgVljkjN1XtIjtH",
+          "name": "HAQKey"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        -768
+      ],
+      "id": "82878c23-7164-438e-a17b-a6018566d45b",
+      "name": "Question&MCQ"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst inputs = $input.all();\n\n// Array to hold parsed MCQs\nlet outputItems = [];\n\n// Iterate over all inputs\nfor (const item of inputs) {\n    const json = item.json;\n    const  question_id= $input.first().json.question_id || null;\n    const posted_date= $input.first().json.post_date || new Date().toISOString();\n    // Only process items that have content.parts\n    if (json.content && json.content.parts && json.content.parts.length > 0) {\n        const text = json.content.parts[0].text;\n\n        let mcqs;\n        try {\n            // Parse JSON string inside text\n            mcqs = JSON.parse(text.replace(/\\n/g, \"\"));\n        } catch (err) {\n            throw new Error(\"Failed to parse LLM output JSON: \" + err + \"\\nOutput: \" + text);\n        }\n\n        // Map each MCQ into n8n item\n        mcqs.forEach(mcq => {\n            outputItems.push({\n                json: {\n                    question: mcq.question,\n                    options: mcq.options || null,\n                    correct_option: mcq.correct || null,\n                    question_id:question_id,\n                    posted_date: posted_date\n                }\n            });\n        });\n    }\n}\n\n// Return only parsed MCQs\nreturn outputItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -768
+      ],
+      "id": "5201d717-6106-4a1f-92e7-38906ac29f7a",
+      "name": "FormattingTosaveinDB"
+    },
+    {
+      "parameters": {
+        "tableId": "mcq_tbl",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -768
+      ],
+      "id": "8dbf5058-a34b-43bb-bebd-075b0a151647",
+      "name": "MCQDBInsertion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"full_name\": \"{{ $json.body.name }}\",\n  \"batch_code\": \"{{ $json.body.batch_code }}\",\n  \"track\":\"{{ $json.body.track }}\",\n  \"email\":\"{{ $json.body.email }}\",\n  \"password\":\"{{ $json.body.password }}\",\n  \"zone\":\"{{ $json.body.zone }}\",\n  \"status\":\"Active\"\n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -928,
+        -96
+      ],
+      "id": "50ffa093-e5be-4da6-b747-642adb214c7a",
+      "name": "signUpInputs"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -96
+      ],
+      "id": "96fd2992-412c-4d4e-865f-3714e4b5f7f7",
+      "name": "getEmail",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -464,
+        -272
+      ],
+      "id": "fb3c6aa3-2c6b-4ef6-b814-a016a82f8b02",
+      "name": "Inputs&DBData"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input array\nconst items = $input.all().map(item => item.json);\n\n// Check if second element exists and is empty\nlet status = false;\nif (items[1] && Object.keys(items[1]).length > 0) {\n  status = true;\n}\n\n// Return combined output with status\nreturn [\n  {\n    json: {\n      data: items,\n      status: status\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -96
+      ],
+      "id": "95023463-a1fc-423f-9b6a-01168f6ff4ae",
+      "name": "FormattingwithStatus"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ea5e2adf-a839-4cf5-b933-e3612d02a9fa",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -96
+      ],
+      "id": "86c2e5f6-0d9f-42bd-9aa7-8b181fed0400",
+      "name": "CheckStatus"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item\nconst input = $input.first().json;\n\n// Extract only the first element of data\nconst inputData = input.data[0];\n\n// Return it as a new JSON object\nreturn [\n  { json: inputData }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        176
+      ],
+      "id": "1cfdf7a8-baa4-4f04-ac6c-0fee06f0b7b4",
+      "name": "InputDataFormatting"
+    },
+    {
+      "parameters": {
+        "tableId": "user_tbl",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        -64
+      ],
+      "id": "1ef7972e-e2f8-41d6-af3a-29444f2ce61a",
+      "name": "DBInsertion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1824,
+        -336
+      ],
+      "id": "83f0693f-fdac-4fe1-9513-bb56ead18345",
+      "name": "Respond to Webhook",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "timezone_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "time_zone",
+              "keyValue": "={{ $json.zone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        176
+      ],
+      "id": "2663272c-4303-4c5f-b481-1ecaf2027178",
+      "name": "Get a row",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d2cd1f05-3675-4e92-9531-c2873eaadb58",
+              "leftValue": "={{ $json.zone_status }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        -80
+      ],
+      "id": "f7237b99-087b-418e-a627-228fe435aa0f",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        -80
+      ],
+      "id": "76d79802-150b-477a-8496-ff7a63c185f9",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input from previous node (Merge)\nconst itemsInput = $input.all();\n\n// Extract first and second items (if exist)\nconst user = itemsInput[0]?.json || {};\nconst zone = itemsInput[1]?.json || {};\n\n// Check if zone info exists (not empty)\nconst hasZone = Object.keys(zone).length > 0;\n\n// Build final output object\nconst result = {\n  ...user,\n  zone_status: hasZone,\n  zone_id: hasZone ? zone.zone_id : null\n};\n\n// Return as single-item array (n8n format)\nreturn [{ json: result }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -80
+      ],
+      "id": "9fb3a4dd-dadd-4eba-be92-831d11f29d11",
+      "name": "Code"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1200,
+        160
+      ],
+      "id": "fe3a0119-fd99-4d0a-b04e-3d99408e206b",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "tableId": "timezone_tbl",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "time_zone",
+              "fieldValue": "={{ $json.zone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        144
+      ],
+      "id": "5a8ca7b0-62e9-451b-aeef-b27cc06c7741",
+      "name": "ZoneDbInsert",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get both input items\nconst items = $input.all();\n\n// Extract each part\nconst zone = items[0]?.json || {};\nconst user = items[1]?.json || {};\n\n// Merge user info + new zone_id\nconst merged = {\n  full_name: user.full_name,\n  batch_code: user.batch_code,\n  track: user.track,\n  email: user.email,\n  password: user.password,\n  status: user.status,\n  zone_id: zone.zone_id || user.zone_id || null,\n};\n\n// Return single JSON output (required by n8n)\nreturn [{ json: merged }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        160
+      ],
+      "id": "bbe78908-56b0-4492-a8c1-972b565a8269",
+      "name": "DbInputAfterZoneIdGeneration"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"success\": \"false\",\n  \"message\": \"User with the given email already exists!!\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        -352
+      ],
+      "id": "5324e8ce-a84b-40b6-9b51-bb34dfdfca52",
+      "name": "FailMessage"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"success\": \"true\",\n  \"message\": \"Account Created!!\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1696,
+        -64
+      ],
+      "id": "9b727a63-2fa0-4344-a6f6-6ad2d61c6cb5",
+      "name": "SuccessMsg"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input from previous node\nconst items = $input.all();\n\n// For each item, delete unwanted keys\nconst db_data = items.map(item => {\n  const data = { ...item.json };\n  delete data.zone;\n  delete data.zone_status;\n  return { json: data };\n});\n\n// Return cleaned output\nreturn db_data;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -160
+      ],
+      "id": "1f4411c0-c6e0-4475-8229-b241f6700834",
+      "name": "DbInput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -720,
+        -96
+      ],
+      "id": "7120c1ba-29bc-43ca-9449-db2f32b3ff5c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "signUp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1248,
+        -96
+      ],
+      "id": "d1131b07-05cb-4c68-9220-08d2350e70a0",
+      "name": "SignUpHook",
+      "webhookId": "e350739a-a8a3-4531-bbf5-b99887216ced"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "login",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1136,
+        576
+      ],
+      "id": "de43cc5d-c4e6-46c8-98b3-4d82854c3085",
+      "name": "LoginHook",
+      "webhookId": "e350739a-a8a3-4531-bbf5-b99887216ced"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        96,
+        560
+      ],
+      "id": "c0ef8321-1402-4f1c-a056-25f21e6ffc6f",
+      "name": "Respond to Webhook1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"status\": \"success\",\n  \"user\": {\n    \"name\":\"{{ $json.full_name }}\",\n    \"track\":\"{{ $json.track }}\",\n    \"batch_code\":\"{{ $json.batch_code }}\",\n    \"user_id\":{{ $json.user_id }}\n  }\n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        480
+      ],
+      "id": "be46d190-7aa6-4118-b982-82e30a8013a2",
+      "name": "successMsg"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"status\": \"error\",\n  \"user\":{}\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        672
+      ],
+      "id": "722e58be-fb68-47d7-bdca-d639e19efef3",
+      "name": "failMsg"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "19d29b25-4e66-465a-942a-86cbe2d67d54",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -464,
+        576
+      ],
+      "id": "0151b289-219d-4372-83a4-acf0114a8b2e",
+      "name": "authenticationCheck"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"email\": \"{{ $json.body.email }}\",\n  \"password\": \"{{ $json.body.password }}\"\n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        576
+      ],
+      "id": "f020c6ef-3c50-4907-9af9-7c1d2d2e09d4",
+      "name": "getInput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "user_tbl",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.email }}"
+            },
+            {
+              "keyName": "password",
+              "keyValue": "={{ $json.password }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        576
+      ],
+      "id": "76330eef-637b-4cf9-8835-932d0bfea425",
+      "name": "dbCheck",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BpaQjSTmzylI82nK",
+          "name": "MoonshotAccount"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "GetDate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get MCQ": {
+      "main": [
+        [
+          {
+            "node": "Date&QuestionMerge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "MCQExists": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GetQuestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetDate": {
+      "main": [
+        [
+          {
+            "node": "Get MCQ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Date&QuestionMerge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date&QuestionMerge": {
+      "main": [
+        [
+          {
+            "node": "ConsolidatedOutput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ConsolidatedOutput": {
+      "main": [
+        [
+          {
+            "node": "MCQExists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetQuestion": {
+      "main": [
+        [
+          {
+            "node": "PromptGeneration",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Question&MCQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PromptGeneration": {
+      "main": [
+        [
+          {
+            "node": "MCQ_LLM_Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCQ_LLM_Call": {
+      "main": [
+        [
+          {
+            "node": "Question&MCQ",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Question&MCQ": {
+      "main": [
+        [
+          {
+            "node": "FormattingTosaveinDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormattingTosaveinDB": {
+      "main": [
+        [
+          {
+            "node": "MCQDBInsertion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "signUpInputs": {
+      "main": [
+        [
+          {
+            "node": "getEmail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inputs&DBData",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getEmail": {
+      "main": [
+        [
+          {
+            "node": "Inputs&DBData",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Inputs&DBData": {
+      "main": [
+        [
+          {
+            "node": "FormattingwithStatus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormattingwithStatus": {
+      "main": [
+        [
+          {
+            "node": "CheckStatus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckStatus": {
+      "main": [
+        [
+          {
+            "node": "FailMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "InputDataFormatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InputDataFormatting": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DBInsertion": {
+      "main": [
+        [
+          {
+            "node": "SuccessMsg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "DbInput",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ZoneDbInsert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "DbInputAfterZoneIdGeneration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ZoneDbInsert": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DbInputAfterZoneIdGeneration": {
+      "main": [
+        [
+          {
+            "node": "DBInsertion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FailMessage": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SuccessMsg": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DbInput": {
+      "main": [
+        [
+          {
+            "node": "DBInsertion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SignUpHook": {
+      "main": [
+        [
+          {
+            "node": "signUpInputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LoginHook": {
+      "main": [
+        [
+          {
+            "node": "getInput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "successMsg": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "failMsg": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "authenticationCheck": {
+      "main": [
+        [
+          {
+            "node": "successMsg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "failMsg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getInput": {
+      "main": [
+        [
+          {
+            "node": "dbCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dbCheck": {
+      "main": [
+        [
+          {
+            "node": "authenticationCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "129f3f51-d9e2-4eed-9419-6d0bb94cf60d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e4457270c9ee4f195ff1ee3f1a980f8e822535f65eb83686db66b0b94e147c5b"
+  },
+  "id": "cjndyhERXvhIF9VS",
+  "tags": []
+}
